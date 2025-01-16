@@ -19,7 +19,7 @@ client = TelegramClient("session_name", credentials["api_id"], credentials["api_
 
 target_channel_id = -1002480588574
 
-path = Path("./testes/teste")
+path = Path("./testes/Pikuma")
 
 
 async def add_tag_to_folder_title(folder_title):
@@ -70,20 +70,13 @@ async def send_video(video):
             progress_callback=progress_callback,
         )
 
-        """ 
-        #F513 001 - aula
-
-        073 - Séries de Taylor
-        =011 - ( ) Identidade de Euler
-        """
-
 
 async def manage_content(content_file):
     file_name = content_file.name
     file_suffix = content_file.suffix.lower()
 
     if file_suffix == ".mp4":
-        # await send_video(content_file)
+        await send_video(content_file)
         await client.send_message(target_channel_id, file_name)
     if file_suffix == ".pdf":
         await send_pdf(content_file)
