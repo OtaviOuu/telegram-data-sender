@@ -18,11 +18,33 @@ client = TelegramClient("session_name", credentials["api_id"], credentials["api_
 
 target_channel_id = -1002480588574
 
-path = Path("./Dominando o calc")
+path = Path("./testes/teste")
 
 
 async def add_tag_to_folder_title(folder_title):
     return f"#A{folder_title}"
+
+
+async def send_pdf(pdf):
+    pdf_name = pdf.name
+    with tqdm(
+        total=pdf.stat().st_size,
+        unit="B",
+        unit_scale=True,
+        desc=pdf_name,
+    ) as progress_bar:
+
+        def progress_callback(current, total):
+            progress_bar.n = current
+            progress_bar.total = total
+            progress_bar.refresh()
+
+        await client.send_file(
+            target_channel_id,
+            pdf,
+            caption=pdf_name,
+            progress_callback=progress_callback,
+        )
 
 
 async def send_video(video):
@@ -55,17 +77,30 @@ async def send_video(video):
         """
 
 
+async def manage_content(content_file):
+    file_name = content_file.name
+    file_suffix = content_file.suffix.lower()
+
+    if file_suffix == ".mp4":
+        # await send_video(content_file)
+        await client.send_message(target_channel_id, file_name)
+    if file_suffix == ".pdf":
+        await send_pdf(content_file)
+
+
 async def main():
     sorted_files = sorted(path.iterdir(), key=lambda x: x.name.lower())
     for file in sorted_files:
         if file.is_dir():
-            dir_name = file.name
+            dir_name = await add_tag_to_folder_title(file.name)
             await client.send_message(target_channel_id, dir_name)
 
             sorted_videos = sorted(file.iterdir(), key=lambda x: x.name.lower())
-            for video in sorted_videos:
-                if video.suffix.lower() == ".mp4":
-                    await send_video(video)
+            for content_file in sorted_videos:
+                await manage_content(content_file)
+
+        if file.is_file():
+            await manage_content(file)
 
 
 with client:
