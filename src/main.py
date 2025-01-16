@@ -21,8 +21,8 @@ target_channel_id = -1002480588574
 path = Path("./Dominando o calc")
 
 
-async def add_tag_to_video_title(video_tile):
-    return f"#A{video_tile}"
+async def add_tag_to_folder_title(folder_title):
+    return f"#A{folder_title}"
 
 
 async def send_video(video):
