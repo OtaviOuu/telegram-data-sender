@@ -5,6 +5,7 @@ from tqdm import tqdm
 import dotenv
 import os
 
+
 dotenv.load_dotenv()
 
 credentials = {
@@ -88,7 +89,7 @@ async def manage_content(content_file):
         await send_pdf(content_file)
 
 
-async def main():
+async def send():
     sorted_files = sorted(path.iterdir(), key=lambda x: x.name.lower())
     for file in sorted_files:
         if file.is_dir():
@@ -104,4 +105,4 @@ async def main():
 
 
 with client:
-    client.loop.run_until_complete(main())
+    client.loop.run_until_complete(send())
