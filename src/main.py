@@ -43,7 +43,6 @@ async def create_progress_bar(file):
 
 
 async def send_doc(doc):
-
     progress_bar, progress_callback = create_progress_bar(doc)
 
     with progress_bar:
@@ -71,33 +70,20 @@ async def send_video(video):
 async def manage_content(content_file):
     file_suffix = content_file.suffix.lower()
 
-    video_extensions = [
-        ".mp4",
-        ".mkv",
-        ".avi",
-        ".mov",
-        ".wmv",
-        ".flv",
-        ".webm",
-    ]
-    document_extensions = [
-        ".pdf",
-        ".doc",
-        ".docx",
-        ".txt",
-        ".ppt",
-        ".pptx",
-        ".xls",
-        ".xlsx",
-    ]
+    extension_handlers = {
+        "video": {
+            "extensions": [".mp4", ".mkv", ".avi", ".mov", ".wmv", ".flv", ".webm"],
+            "handler": send_video,
+        },
+        "document": {
+            "extensions": [".pdf", ".txt", ".xls"],
+            "handler": send_doc,
+        },
+    }
 
-    for video_extension in video_extensions:
-        if file_suffix == video_extension:
-            await send_video(content_file)
-
-    for document_extension in document_extensions:
-        if file_suffix == document_extension:
-            await send_doc(content_file)
+    for _, extension_data in extension_handlers.items():
+        if file_suffix in extension_data["extensions"]:
+            await extension_data["handler"](content_file)
 
 
 async def send():
