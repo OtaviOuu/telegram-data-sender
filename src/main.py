@@ -26,13 +26,12 @@ async def add_tag_to_folder_title(folder_title):
     return f"#A{folder_title}"
 
 
-async def send_pdf(pdf):
-    pdf_name = pdf.name
+async def create_progress_bar(file):
     with tqdm(
-        total=pdf.stat().st_size,
+        total=file.stat().st_size,
         unit="B",
         unit_scale=True,
-        desc=pdf_name,
+        desc=file.name,
     ) as progress_bar:
 
         def progress_callback(current, total):
@@ -40,46 +39,65 @@ async def send_pdf(pdf):
             progress_bar.total = total
             progress_bar.refresh()
 
+        return progress_callback, progress_bar
+
+
+async def send_doc(doc):
+
+    progress_bar, progress_callback = create_progress_bar(doc)
+
+    with progress_bar:
         await client.send_file(
             target_channel_id,
-            pdf,
-            caption=pdf_name,
+            file=doc,
+            caption=doc.name,
             progress_callback=progress_callback,
         )
 
 
 async def send_video(video):
-    video_name = video.name
-    with tqdm(
-        total=video.stat().st_size,
-        unit="B",
-        unit_scale=True,
-        desc=video_name,
-    ) as progress_bar:
+    progress_bar, progress_callback = create_progress_bar(video)
 
-        def progress_callback(current, total):
-            progress_bar.n = current
-            progress_bar.total = total
-            progress_bar.refresh()
-
+    with progress_bar:
         await client.send_file(
             target_channel_id,
             video,
-            caption=video_name,
+            caption=video.name,
             supports_streaming=True,
             progress_callback=progress_callback,
         )
 
 
 async def manage_content(content_file):
-    file_name = content_file.name
     file_suffix = content_file.suffix.lower()
 
-    if file_suffix == ".mp4":
-        await send_video(content_file)
-        await client.send_message(target_channel_id, file_name)
-    if file_suffix == ".pdf":
-        await send_pdf(content_file)
+    video_extensions = [
+        ".mp4",
+        ".mkv",
+        ".avi",
+        ".mov",
+        ".wmv",
+        ".flv",
+        ".webm",
+    ]
+    document_extensions = [
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".txt",
+        ".ppt",
+        ".pptx",
+        ".xls",
+        ".xlsx",
+    ]
+
+    for video_extension in video_extensions:
+        if file_suffix == video_extension:
+            await send_video(content_file)
+
+    for document_extension in document_extensions:
+        if file_suffix == document_extension:
+            await send_doc(content_file)
 
 
 async def send():
@@ -93,7 +111,7 @@ async def send():
             for content_file in sorted_videos:
                 await manage_content(content_file)
 
-        if file.is_file():
+        elif file.is_file():
             await manage_content(file)
 
 
