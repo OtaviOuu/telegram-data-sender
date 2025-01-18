@@ -5,6 +5,7 @@ from tqdm import tqdm
 import dotenv
 import os
 import json
+import socket
 
 dotenv.load_dotenv()
 
@@ -123,17 +124,17 @@ async def main():
             # await client.send_message(target_channel_id, dir_name)
             sorted_videos = sorted(file.iterdir(), key=lambda x: x.name.lower())
             for content_file in sorted_videos:
-                video_tag = f"#V{video_index}"
+                video_tag = f"#V{str(video_index).zfill(3)}"
                 content_map[dir_name].append(video_tag)
 
                 with open("content_map.txt", "w") as f:
                     json.dump(content_map, f, indent=4, ensure_ascii=False)
-                await manage_content(content_file, video_tag)
+                # await manage_content(content_file, video_tag)
                 video_index += 1
         elif file.is_file():
             await manage_content(file)
 
-    guide_message = "Feito com ♥ em Contagem - MG:\n\n\n"
+    guide_message = f"Feito com ♥ por {socket.gethostname()}:\n\n\n"
     for folder, tags in content_map.items():
 
         guide_message += f"= {folder}\n{' '.join(tags)}\n\n"
