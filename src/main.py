@@ -19,35 +19,14 @@ test_folder = os.getenv("TEST_FOLDER")
 
 client = TelegramClient("session_name", credentials["api_id"], credentials["api_hash"])
 
-target_channel_id = -1002480588574
+target_channel_id = int(os.getenv("CHANNEL_ID"))
 
 path = Path(str(test_folder))
 
 content_map = {}
 
 
-async def add_tag_to_folder_title(folder_title):
-    return f"#A{folder_title}"
-
-
-async def create_progress_bar(file):
-    with tqdm(
-        total=file.stat().st_size,
-        unit="B",
-        unit_scale=True,
-        desc=file.name,
-    ) as progress_bar:
-
-        def progress_callback(current, total):
-            progress_bar.n = current
-            progress_bar.total = total
-            progress_bar.refresh()
-
-        return progress_callback, progress_bar
-
-
 async def send_doc(doc):
-
     doc_name = doc.name
 
     with tqdm(
@@ -129,7 +108,7 @@ async def main():
 
                 with open("content_map.txt", "w") as f:
                     json.dump(content_map, f, indent=4, ensure_ascii=False)
-                # await manage_content(content_file, video_tag)
+                await manage_content(content_file, video_tag)
                 video_index += 1
         elif file.is_file():
             await manage_content(file)
@@ -140,7 +119,9 @@ async def main():
         guide_message += f"= {folder}\n{' '.join(tags)}\n\n"
     with open("final.txt", "w") as f:
         f.write(guide_message)
-    await client.send_message(target_channel_id, guide_message)
+
+    map_message = await client.send_message(target_channel_id, guide_message)
+    await client.pin_message(target_channel_id, map_message.id)
 
 
 with client:
