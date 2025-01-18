@@ -14,12 +14,13 @@ credentials = {
     "phone_number": os.getenv("PHONE_NUMBER"),
 }
 
+test_folder = os.getenv("TEST_FOLDER")
 
 client = TelegramClient("session_name", credentials["api_id"], credentials["api_hash"])
 
 target_channel_id = -1002480588574
 
-path = Path("./testes/Dominando o calc")
+path = Path(str(test_folder))
 
 content_map = {}
 
@@ -68,9 +69,8 @@ async def send_doc(doc):
         )
 
 
-async def send_video(video):
-
-    video_name = video.name
+async def send_video(video, video_tag):
+    video_name = f"{video_tag} - {video.name}"
 
     with tqdm(
         total=video.stat().st_size,
@@ -93,7 +93,7 @@ async def send_video(video):
         )
 
 
-async def manage_content(content_file):
+async def manage_content(content_file, video_tag):
     file_suffix = content_file.suffix.lower()
 
     extension_handlers = {
@@ -109,7 +109,7 @@ async def manage_content(content_file):
 
     for _, extension_data in extension_handlers.items():
         if file_suffix in extension_data["extensions"]:
-            await extension_data["handler"](content_file)
+            await extension_data["handler"](content_file, video_tag)
 
 
 async def main():
@@ -121,7 +121,6 @@ async def main():
             # aaaaaaaaaaaaaaaaa
             content_map[dir_name] = []
             # await client.send_message(target_channel_id, dir_name)
-
             sorted_videos = sorted(file.iterdir(), key=lambda x: x.name.lower())
             for content_file in sorted_videos:
                 video_tag = f"#V{video_index}"
@@ -129,17 +128,15 @@ async def main():
 
                 with open("content_map.txt", "w") as f:
                     json.dump(content_map, f, indent=4, ensure_ascii=False)
-                # await manage_content(content_file)
+                await manage_content(content_file, video_tag)
                 video_index += 1
         elif file.is_file():
             await manage_content(file)
 
-    guide_message = ""
+    guide_message = "Feito com ♥ em Contagem - MG:\n\n\n"
     for folder, tags in content_map.items():
-        guide_message += f"""
-        {folder}
-        {', '.join(tags)}
-        """
+
+        guide_message += f"= {folder}\n{' '.join(tags)}\n\n"
     with open("final.txt", "w") as f:
         f.write(guide_message)
     await client.send_message(target_channel_id, guide_message)
