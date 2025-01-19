@@ -1,32 +1,29 @@
 from telethon import TelegramClient
-from telethon.sync import TelegramClient
 from pathlib import Path
 from tqdm import tqdm
 import dotenv
 import os
-import json
 import socket
 
-dotenv.load_dotenv()
+video_index = 0
+
+dotenv.load_dotenv(dotenv_path=".env", override=True)
 
 credentials = {
     "api_id": os.getenv("API_ID"),
     "api_hash": os.getenv("API_HASH"),
     "phone_number": os.getenv("PHONE_NUMBER"),
+    "folder": os.getenv("FOLDER"),
+    "channel_id": int(os.getenv("CHANNEL_ID")),
 }
-
-test_folder = os.getenv("TEST_FOLDER")
 
 client = TelegramClient("session_name", credentials["api_id"], credentials["api_hash"])
 
-target_channel_id = int(os.getenv("CHANNEL_ID"))
-
-path = Path(str(test_folder))
-
+folder_path = Path(str(credentials["folder"]))
 content_map = {}
 
 
-async def send_doc(doc):
+async def send_doc(doc, video_tag):
     doc_name = doc.name
 
     with tqdm(
@@ -42,7 +39,7 @@ async def send_doc(doc):
             progress_bar.refresh()
 
         await client.send_file(
-            target_channel_id,
+            credentials["channel_id"],
             file=doc,
             caption=doc_name,
             progress_callback=progress_callback,
@@ -65,7 +62,7 @@ async def send_video(video, video_tag):
             progress_bar.refresh()
 
         await client.send_file(
-            target_channel_id,
+            credentials["channel_id"],
             video,
             caption=video_name,
             supports_streaming=True,
@@ -92,36 +89,40 @@ async def manage_content(content_file, video_tag):
             await extension_data["handler"](content_file, video_tag)
 
 
-async def main():
-    video_index = 0
-    sorted_files = sorted(path.iterdir(), key=lambda x: x.name.lower())
-    for file in sorted_files:
-        if file.is_dir():
-            dir_name = file.name
-            # aaaaaaaaaaaaaaaaa
-            content_map[dir_name] = []
-            # await client.send_message(target_channel_id, dir_name)
-            sorted_videos = sorted(file.iterdir(), key=lambda x: x.name.lower())
-            for content_file in sorted_videos:
-                video_tag = f"#V{str(video_index).zfill(3)}"
-                content_map[dir_name].append(video_tag)
+async def process_folder(folder_path: Path):
+    global video_index
+    dir_name = folder_path.name
 
-                with open("content_map.txt", "w") as f:
-                    json.dump(content_map, f, indent=4, ensure_ascii=False)
-                await manage_content(content_file, video_tag)
-                video_index += 1
+    if dir_name not in content_map:
+        content_map[dir_name] = []
+
+    for file in sorted(folder_path.iterdir(), key=lambda x: x.name.lower()):
+        if file.is_dir():
+            await process_folder(file)
+        else:
+            video_tag = f"#V{str(video_index).zfill(3)}"
+            content_map[dir_name].append(video_tag)
+            video_index += 1
+            await manage_content(file, video_tag)
+
+
+async def send_large_message(channel_id, message, chunk_size=4096):
+    for i in range(0, len(message), chunk_size):
+        await client.send_message(channel_id, message[i : i + chunk_size])
+
+
+async def main():
+    for file in sorted(folder_path.iterdir(), key=lambda x: x.name.lower()):
+        if file.is_dir():
+            await process_folder(file)
         elif file.is_file():
-            await manage_content(file)
+            pass
 
     guide_message = f"Feito com ♥ por {socket.gethostname()}:\n\n\n"
-    for folder, tags in content_map.items():
-
+    for folder, tags in sorted(content_map.items()):
         guide_message += f"= {folder}\n{' '.join(tags)}\n\n"
-    with open("final.txt", "w") as f:
-        f.write(guide_message)
 
-    map_message = await client.send_message(target_channel_id, guide_message)
-    await client.pin_message(target_channel_id, map_message.id)
+    await send_large_message(credentials["channel_id"], guide_message)
 
 
 with client:
